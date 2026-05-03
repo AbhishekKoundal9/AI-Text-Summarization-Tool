@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+transformers
+torch
+pydantic
+python-multipart
+PyPDF2
+rake-nltk
+sumy
+textblob
+beautifulsoup4
+requests
+python-docx
