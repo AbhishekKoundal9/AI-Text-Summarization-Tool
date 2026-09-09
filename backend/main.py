@@ -9,7 +9,6 @@ import PyPDF2
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 try:
@@ -137,19 +136,36 @@ async def export_document(request: ExportRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate document: {str(e)}")
 
-# Frontend static serving
-_frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
-if os.path.exists(_frontend_dir):
-    @app.get("/", include_in_schema=False)
-    async def serve_index():
-        return FileResponse(os.path.join(_frontend_dir, "index.html"))
+# Multi-directory frontend static file resolution
+_candidate_dirs = [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend")),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+    os.getcwd(),
+]
 
-    @app.get("/{file_name:path}", include_in_schema=False)
-    async def serve_static(file_name: str):
-        file_path = os.path.join(_frontend_dir, file_name)
-        if os.path.isfile(file_path):
-            return FileResponse(file_path)
-        raise HTTPException(status_code=404, detail="Not found")
+def _find_static_file(filename: str) -> str | None:
+    for folder in _candidate_dirs:
+        target = os.path.join(folder, filename)
+        if os.path.isfile(target):
+            return target
+    return None
+
+@app.get("/", include_in_schema=False)
+async def serve_index():
+    path = _find_static_file("index.html")
+    if path:
+        return FileResponse(path)
+    return {"message": "AI Text Summarizer API is running"}
+
+@app.get("/{file_name:path}", include_in_schema=False)
+async def serve_static(file_name: str):
+    path = _find_static_file(file_name)
+    if path:
+        return FileResponse(path)
+    index_path = _find_static_file("index.html")
+    if index_path:
+        return FileResponse(index_path)
+    raise HTTPException(status_code=404, detail="File not found")
 
 if __name__ == "__main__":
     import uvicorn
