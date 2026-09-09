@@ -1,21 +1,28 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from summarizer import summarizer_instance
-from typing import List
-import PyPDF2
+import os
 import io
 import requests
+from typing import List
 from bs4 import BeautifulSoup
 from docx import Document
+import PyPDF2
+
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+try:
+    from backend.summarizer import summarizer_instance
+except ImportError:
+    from summarizer import summarizer_instance
 
 app = FastAPI(title="Text Summarization API", description="API for summarizing text using NLP models")
 
 # Configure CORS for frontend access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,6 +47,10 @@ class SummarizeResponse(BaseModel):
     summary: str
     keywords: List[str] = []
     sentiment: str = "Neutral"
+
+@app.get("/healthz", tags=["health"])
+async def health():
+    return {"status": "ok"}
 
 @app.post("/summarize", response_model=SummarizeResponse)
 async def summarize_text(request: SummarizeRequest):
@@ -83,18 +94,15 @@ async def upload_file(file: UploadFile = File(...)):
 @app.post("/scrape")
 async def scrape_url(request: ScrapeRequest):
     try:
-        # Fetch the webpage with a timeout
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         response = requests.get(request.url, headers=headers, timeout=10)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.content, "html.parser")
         
-        # Extract text from paragraph tags which usually contain the article body
         paragraphs = soup.find_all('p')
         text = "\n".join([p.get_text() for p in paragraphs])
         
-        # Fallback if no paragraphs are found
         if len(text.strip()) < 50:
             text = soup.get_text(separator='\n', strip=True)
             
@@ -117,7 +125,6 @@ async def export_document(request: ExportRequest):
         doc.add_heading('Summary', level=1)
         doc.add_paragraph(request.summary)
 
-        # Save to memory stream
         file_stream = io.BytesIO()
         doc.save(file_stream)
         file_stream.seek(0)
@@ -130,11 +137,20 @@ async def export_document(request: ExportRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate document: {str(e)}")
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to the Text Summarization API."}
+# Frontend static serving
+_frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+if os.path.exists(_frontend_dir):
+    @app.get("/", include_in_schema=False)
+    async def serve_index():
+        return FileResponse(os.path.join(_frontend_dir, "index.html"))
+
+    @app.get("/{file_name:path}", include_in_schema=False)
+    async def serve_static(file_name: str):
+        file_path = os.path.join(_frontend_dir, file_name)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        raise HTTPException(status_code=404, detail="Not found")
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
