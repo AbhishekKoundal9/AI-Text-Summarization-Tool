@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Text Summarizer Pro</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-blobs" id="vanta-bg">
+        <!-- Vanta JS will inject canvas here -->
+    </div>
+
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- History Sidebar -->
+    <aside class="sidebar glass" id="history-sidebar">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin-bottom: 0;">History</h2>
+            <div>
+                <button id="clear-history-btn" class="upload-btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; background: rgba(239, 68, 68, 0.2); color: #fecaca; border: 1px solid rgba(239, 68, 68, 0.5); margin-right: 0.5rem;">Clear All</button>
+                <button id="close-history-btn" class="upload-btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">✖</button>
+            </div>
+        </div>
+        <div id="history-list">
+            <!-- History items will be injected here -->
+            <p class="placeholder-text">No saved summaries yet.</p>
+        </div>
+    </aside>
+
+    <main class="container">
+        <header style="position: relative;">
+            <div style="position: absolute; left: 0; top: 0;">
+                <button id="toggle-history-btn" class="primary-btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">🕒 History</button>
+            </div>
+            <h1>AI Text <span>Summarizer</span></h1>
+            <p>Distill long documents into concise summaries instantly.</p>
+        </header>
+
+        <section class="workspace">
+            <!-- Input Panel -->
+            <div class="input-panel panel glass">
+                <div class="panel-header">
+                    <label for="source-text">Source Text</label>
+                    <div class="file-upload" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="url" id="url-input" placeholder="Paste URL..." style="padding: 0 0.8rem; height: 36px; box-sizing: border-box; border-radius: 4px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.1); color: white; outline: none; font-size: 0.85rem; width: 150px;">
+                        <button type="button" id="fetch-url-btn" class="upload-btn">🌐 Fetch URL</button>
+                        <button type="button" id="upload-file-btn" class="upload-btn">📄 Upload File</button>
+                        <input type="file" id="file-input" accept=".txt,.pdf" hidden>
+                    </div>
+                </div>
+                
+                <textarea id="source-text" placeholder="Paste your text or upload a document here..."></textarea>
+                
+                <div class="controls">
+                    <div class="length-control">
+                        <label for="style-select">Style:</label>
+                        <select id="style-select" style="margin-right: 1rem;">
+                            <option value="abstractive" selected>Paragraphs</option>
+                            <option value="extractive">Key Points</option>
+                        </select>
+
+                        <div id="length-container" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <label for="length-select" style="margin: 0;">Length:</label>
+                            <select id="length-select">
+                                <option value="short">Short</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="detailed">Detailed</option>
+                            </select>
+                        </div>
+                        
+                        <div id="bullet-container" class="hidden" style="display: none; align-items: center; gap: 0.5rem;">
+                            <label for="bullet-count" style="margin: 0;">Points:</label>
+                            <input type="number" id="bullet-count" value="3" min="1" max="20" style="width: 50px; padding: 0.2rem; border-radius: 4px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.1); color: white; outline: none; font-size: 0.85rem;">
+                        </div>
+                    </div>
+                    <button id="summarize-btn" class="primary-btn">
+                        <span class="btn-text">Summarize</span>
+                        <span class="loader hidden"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="output-panel panel glass" id="output-panel-capture">
+                <div class="panel-header">
+                    <label for="summary-text">Summary</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="export-word-btn" class="icon-btn" title="Export to Word">📄 Word</button>
+                        <button id="export-pdf-btn" class="icon-btn" title="Export to PDF">📉 PDF</button>
+                        <button id="copy-btn" class="icon-btn" title="Copy to Clipboard">📋 Copy</button>
+                    </div>
+                </div>
+                
+                <div id="summary-content" class="summary-box">
+                    <p class="placeholder-text">Your summary will appear here...</p>
+                </div>
+
+                <div class="keywords-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label>Keywords</label>
+                        <div id="sentiment-container">
+                            <span class="badge badge-neutral">Sentiment: N/A</span>
+                        </div>
+                    </div>
+                    <div id="keywords-container" class="badges">
+                        <!-- Keyword badges injected here -->
+                        <span class="placeholder-text" style="font-size: 0.8rem;">Waiting for summary...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="script.js?v=6"></script>
+</body>
+</html>
+
